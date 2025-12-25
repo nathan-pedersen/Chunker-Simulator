@@ -7,7 +7,4 @@
 > * **State Management:** Track Targets, Transport links, and Unlocked areas with full Save/Load functionality.
 > 
 > 
-
-### **3. Tags (For the repository topics)**
-
 `python` `osrs` `oldschool-runescape` `simulation` `chunk-locked` `pathfinding` `monte-carlo` `tkinter`
