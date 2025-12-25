@@ -1,3 +1,5 @@
+# 100% VIBE CODED :)
+
 **OSRS Chunk Picker** is a procedural generation simulation tool designed for Old School RuneScape gameplay challenges (such as chunk-locked accounts). It overlays an interactive grid onto the high-resolution world map, allowing players to simulate the "discovery" of the world through RNG rolls.
 **Key Features:**
 * **Interactive Map:** High-performance viewport rendering engine with smooth pan and zoom (up to 300x).
