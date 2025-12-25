@@ -1,118 +1,39 @@
 # 100% VIBE CODED :)
 
-**OSRS Chunk Picker** is a procedural generation simulation tool designed for Old School RuneScape gameplay challenges (such as chunk-locked accounts). It overlays an interactive grid onto the high-resolution world map, allowing players to simulate the "discovery" of the world through RNG rolls.
-**Key Features:**
-* **Interactive Map:** High-performance viewport rendering engine with smooth pan and zoom (up to 300x).
-* **Fog of War:** Start in pitch black and visually unlock chunks as you progress.
-* **Fate Rolling:** Randomly selects adjacent "Rollable" chunks or Transport destinations to expand your territory.
-* **Statistical Simulation:** Built-in Monte Carlo simulations (1,000+ runs) to calculate the average number of rolls required to reach specific targets or clear map sections.
-* **State Management:** Track Targets, Transport links, and Unlocked areas with full Save/Load functionality.
+`javascript` `osrs` `oldschool-runescape` `simulation` `chunk-locked` `pathfinding` `monte-carlo`
 
-`python` `osrs` `oldschool-runescape` `simulation` `chunk-locked` `pathfinding` `monte-carlo` `tkinter`
+# OSRS Chunk Picker (Web Edition)
 
----
+A high-performance, browser-based tool for simulating **Chunk-Locked Ironmen** accounts in Old School RuneScape. This tool allows you to interactively "unlock" the world map chunk-by-chunk using procedural rolling mechanics.
 
-# OSRS Chunk Picker (v40) – User Guide
+## 🚀 How to Run
+This application is a **static web page**. It requires no installation, Python, or servers.
 
-### **1. Setup & Installation**
+1.  Download the `index.html` file from this repository.
+2.  Ensure you have the [Old_School_RuneScape_world_map.png](https://oldschool.runescape.wiki/w/World_map) image in the **same folder** as the HTML file.
+3.  Double-click `index.html` to open it in any modern web browser.
 
-* **Requirements:** You need Python installed with the `Pillow` library (`pip install pillow`) and `tkinter` (usually included with Python).
-* **Map File:** The program looks for a file named **`Old_School_RuneScape_world_map.png`** in the same folder as the script.
-* *Note:* The system is calibrated for a map image size of roughly **9216x6528 pixels**.
+## 🎮 Controls & Interface
 
+### **Navigation**
+* **Pan:** Click and **Hold Left Mouse** to drag the map.
+* **Zoom:** Use the **Scroll Wheel** to zoom in/out relative to your cursor.
+* **Recenter:** Click the **Recenter View** button to jump to your unlocked territory.
 
+### **Map Interactions**
+* **Unlock/Lock Chunk:** **Left Click** on a tile.
+* **Force Rollable:** **Right Click** a tile to manually mark it as "Rollable" (Cyan).
+* **Set Target:** **Middle Click** (or Shift+Left Click) a tile to cycle through target states:
+    1.  **Target (Red/Purple):** A standard goal chunk.
+    2.  **Transport (Green):** A chunk reachable via teleport (Spirit Tree, Fairy Ring, etc).
+    3.  **Off:** Removes the target.
 
----
+### **Simulation Tools**
+* **Roll Fate:** Randomly selects **one** valid chunk (Cyan, Purple, or Green) to unlock.
+* **Simulate (Race):** Calculates the average rolls to reach **ANY ONE** of your active targets.
+* **Simulate (Clear):** Calculates the average rolls to unlock **ALL** active targets.
 
-### **2. Interface & Navigation**
-
-The tool uses a **Viewport Rendering Engine**, allowing for smooth zooming and panning over the massive high-resolution world map.
-
-* **Panning:**
-* **Drag:** Click and hold **Left Mouse Button** anywhere on the map to drag the view.
-* **Scrollbars:** Use the vertical and horizontal scrollbars.
-
-
-* **Zooming:**
-* **Mouse Wheel:** Scroll up/down to zoom in/out. The zoom focuses on your **mouse cursor**.
-* **Slider:** Use the slider at the top left for manual control.
-* *Note:* Coordinate labels (e.g., `24,18`) appear automatically when zoomed in past level 30.
-
-
-* **Recenter:** Click the **"Recenter"** button to jump the camera to the center of your currently unlocked area.
-
----
-
-### **3. Tile Legend (States)**
-
-The grid overlays the map to show the status of each OSRS Chunk:
-
-| Color | State Name | Description |
-| --- | --- | --- |
-| **Black (Dark Fog)** | **Locked** | The area is undiscovered. The map is visible but darkened. |
-| **Transparent** | **Unlocked** | The area is discovered. The map shows through clearly. |
-| **Cyan** | **Rollable** | A chunk adjacent to your unlocked area. Valid for rolling. |
-| **Red** | **Target (Locked)** | A goal chunk you selected, currently out of reach. |
-| **Purple** | **Target (Reachable)** | A goal chunk that is adjacent to unlocked territory. |
-| **Bright Green** | **Transport** | A chunk reachable via teleport/transport (e.g., Spirit Tree, Fairy Ring) even if not adjacent. |
-
----
-
-### **4. Controls & Interaction**
-
-* **Left Click:**
-* **Click (Short):** Toggles a tile between **Unlocked** and **Locked**.
-* **Hold & Move:** Pans the camera (does not toggle tiles).
-
-
-* **Right Click:**
-* Manually force a Locked tile to become **Rollable (Cyan)**.
-* Revert a Rollable tile to **Locked**.
-
-
-* **Middle Click (Scroll Wheel Click):**
-* **Cycle through Target States:**
-1. **First Click:** Sets as **Target** (Red/Purple).
-2. **Second Click:** Sets as **Transport Target** (Green). *Use this for destination chunks reachable by magic/transport.*
-3. **Third Click:** Removes target (Resets to Locked).
-
-
-
-
-
----
-
-### **5. Rolling & Simulations**
-
-#### **Manual Play ("Roll Fate")**
-
-* Click **"Roll Fate"** to perform one "turn".
-* The system picks **one** random tile from all valid candidates:
-* **Cyan (Rollable)**: Neighbors of unlocked chunks.
-* **Purple (Target Reachable)**: Targets next to unlocked chunks.
-* **Green (Transport)**: Special transport destinations.
-
-
-* The winner becomes **Unlocked**, and neighbors are automatically updated.
-
-#### **Statistical Simulations**
-
-*(Requires at least one Target and one starting Rollable tile)*
-
-* **"Simulate (Any)" – The Race**
-* Calculates the average rolls to hit the **FIRST** available target.
-* **Result:** Shows global average and the % chance of hitting specific target coordinates first.
-
-
-* **"Simulate (All)" – The Full Clear**
-* Calculates the average rolls required to unlock **ALL** selected targets on the map.
-
-
-
----
-
-### **6. Saving & Loading**
-
-* **Save:** Exports your grid progress (unlocked chunks and targets) to a `.json` file.
-* **Load:** Restores a previous session.
-* **Clear:** Resets the grid to a blank state. **Note:** This does *not* reset your camera view, allowing you to easily restart a run in the same specific map region.
+### **Save & Load**
+* **Save:** Downloads a `.json` file containing your current progress.
+* **Load:** Restores your grid state from a previously saved JSON file.
+* *Note: Your browser may cache the map image, but grid progress is not auto-saved to local storage. Always save before closing.*
