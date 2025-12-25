@@ -5,4 +5,5 @@
 * **Fate Rolling:** Randomly selects adjacent "Rollable" chunks or Transport destinations to expand your territory.
 * **Statistical Simulation:** Built-in Monte Carlo simulations (1,000+ runs) to calculate the average number of rolls required to reach specific targets or clear map sections.
 * **State Management:** Track Targets, Transport links, and Unlocked areas with full Save/Load functionality.
+
 `python` `osrs` `oldschool-runescape` `simulation` `chunk-locked` `pathfinding` `monte-carlo` `tkinter`
