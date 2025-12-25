@@ -7,7 +7,7 @@
 A high-performance, browser-based tool for simulating **Chunk-Locked Ironmen** accounts in Old School RuneScape. This tool allows you to interactively "unlock" the world map chunk-by-chunk using procedural rolling mechanics.
 
 ## 🚀 How to Run
-* https://github.com/nathan-pedersen/Chunker-Simulator/deployments/github-pages
+* https://nathan-pedersen.github.io/Chunker-Simulator/
 
 ## 🎮 Controls & Interface
 
