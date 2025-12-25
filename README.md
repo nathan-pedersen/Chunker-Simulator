@@ -8,8 +8,6 @@
 
 `python` `osrs` `oldschool-runescape` `simulation` `chunk-locked` `pathfinding` `monte-carlo` `tkinter`
 
-*User Guide*
-
 ---
 
 # OSRS Chunk Picker (v40) – User Guide
