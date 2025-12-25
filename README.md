@@ -7,11 +7,7 @@
 A high-performance, browser-based tool for simulating **Chunk-Locked Ironmen** accounts in Old School RuneScape. This tool allows you to interactively "unlock" the world map chunk-by-chunk using procedural rolling mechanics.
 
 ## 🚀 How to Run
-This application is a **static web page**. It requires no installation, Python, or servers.
-
-1.  Download the `index.html` file from this repository.
-2.  Ensure you have the [Old_School_RuneScape_world_map.png](https://oldschool.runescape.wiki/w/World_map) image in the **same folder** as the HTML file.
-3.  Double-click `index.html` to open it in any modern web browser.
+* https://github.com/nathan-pedersen/Chunker-Simulator/deployments/github-pages
 
 ## 🎮 Controls & Interface
 
