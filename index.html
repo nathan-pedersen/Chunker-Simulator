@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSRS Chunk Picker v43 (Web - With Help)</title>
+    <style>
+        :root {
+            --bg-color: #202020;
+            --sidebar-color: #303030;
+            --text-color: #ffffff;
+            --btn-color: #404040;
+            --btn-hover: #505050;
+            --accent-color: #2196f3;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        /* Sidebar Styles */
+        #sidebar {
+            width: 220px;
+            background-color: var(--sidebar-color);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.5);
+            z-index: 10;
+            overflow-y: auto;
+        }
+
+        #canvas-container {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+            cursor: grab;
+        }
+
+        #canvas-container.dragging {
+            cursor: grabbing;
+        }
+
+        canvas {
+            display: block;
+            background-color: var(--bg-color);
+        }
+
+        h2 { margin-top: 0; margin-bottom: 15px; font-size: 1.2rem;}
+        hr { width: 100%; border: 1px solid #555; margin: 5px 0;}
+
+        button {
+            background-color: var(--btn-color);
+            color: var(--text-color);
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 14px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--btn-hover);
+        }
+
+        /* Input Group for Sim Runs */
+        .input-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: rgba(0,0,0,0.2);
+            padding: 5px;
+            border-radius: 4px;
+        }
+
+        .input-group label { font-size: 12px; }
+        
+        .input-group input { 
+            width: 80px; 
+            background: #222; 
+            border: 1px solid #555; 
+            color: white; 
+            padding: 4px;
+            text-align: right;
+        }
+
+        /* Special Buttons */
+        #btn-roll { background-color: #ff9800; color: black; font-weight: bold; text-align: center;}
+        #btn-sim-any { background-color: #9c27b0; }
+        #btn-sim-all { background-color: #7b1fa2; }
+        #btn-help { background-color: var(--accent-color); font-weight: bold; text-align: center; margin-top: auto;}
+
+        #sim-results {
+            margin-top: 10px;
+            background-color: rgba(0,0,0,0.3);
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #444;
+        }
+
+        #file-input { display: none; }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: var(--sidebar-color);
+            padding: 25px;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #555;
+            padding-bottom: 10px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+        }
+        .modal-close:hover { color: white; }
+
+        .key-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .color-box {
+            width: 20px; height: 20px;
+            margin-right: 15px;
+            border: 1px solid #555;
+        }
+        .instructions h3 { border-bottom: 1px solid #444; padding-bottom: 5px; margin-top: 20px;}
+        .instructions ul { padding-left: 20px; line-height: 1.6; }
+        .instructions li { margin-bottom: 5px; }
+
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <h2>OSRS Picker v43</h2>
+    <button id="btn-save">Save Grid</button>
+    <button id="btn-load">Load Grid</button>
+    <input type="file" id="file-input" accept=".json">
+    <button id="btn-clear">Clear Grid</button>
+    <button id="btn-recenter">Recenter View</button>
+    <hr>
+    
+    <div class="input-group">
+        <label for="sim-count">Sim Runs:</label>
+        <input type="number" id="sim-count" value="1000" min="1" max="100000">
+    </div>
+
+    <button id="btn-roll">Roll Fate</button>
+    <button id="btn-sim-any">Simulate (Race)</button>
+    <button id="btn-sim-all">Simulate (Clear)</button>
+    
+    <div id="sim-results">Simulation results will appear here.</div>
+    <button id="btn-help">Help / Usage</button>
+</div>
+
+<div id="canvas-container">
+    <canvas id="mapCanvas"></canvas>
+</div>
+
+<div id="help-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 style="margin:0">Usage Guide</h2>
+            <button class="modal-close" onclick="closeHelp()">×</button>
+        </div>
+        <div class="instructions">
+            <h3>Legend</h3>
+            <div class="key-item"><div class="color-box" style="background:rgba(0,0,0,0.75)"></div> Locked (Fog)</div>
+            <div class="key-item"><div class="color-box" style="background:#202020; border:1px dashed #555"></div> Unlocked (Transparent)</div>
+            <div class="key-item"><div class="color-box" style="background:rgba(0,188,212,0.4)"></div> Rollable (Cyan)</div>
+            <div class="key-item"><div class="color-box" style="background:rgba(255,82,82,0.6)"></div> Target (Red)</div>
+            <div class="key-item"><div class="color-box" style="background:rgba(156,39,176,0.6)"></div> Reachable Target (Purple)</div>
+            <div class="key-item"><div class="color-box" style="background:rgba(118,255,3,0.6)"></div> Transport Target (Green)</div>
+
+            <h3>Controls</h3>
+            <ul>
+                <li><strong>Pan:</strong> Click and <b>Hold Left Mouse</b> to drag.</li>
+                <li><strong>Zoom:</strong> Use <b>Scroll Wheel</b>.</li>
+                <li><strong>Toggle Unlock:</strong> <b>Left Click</b> on a tile.</li>
+                <li><strong>Force Rollable:</strong> <b>Right Click</b> on a tile.</li>
+                <li><strong>Set Target:</strong> <b>Middle Click</b> (or Shift+Click) to cycle:
+                    <br><i>Target → Transport (Green) → Off</i>.</li>
+            </ul>
+
+            <h3>Simulation</h3>
+            <ul>
+                <li><strong>Race:</strong> Average rolls to hit the FIRST target.</li>
+                <li><strong>Clear:</strong> Average rolls to hit ALL targets.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+// --- Configuration ---
+const MAP_FILENAME = "Old_School_RuneScape_world_map.png";
+const GRID_COLS = 48;
+const GRID_ROWS = 34;
+const CHUNK_SIZE = 192;
+
+const MIN_ZOOM = 0.05;
+const MAX_ZOOM = 3.0;
+const ZOOM_SPEED = 1.1;
+
+// States
+const STATE_LOCKED = 0;
+const STATE_UNLOCKED = 1;
+const STATE_ROLLABLE = 2;
+const STATE_TARGET_LOCKED = 3;
+const STATE_TARGET_ROLLABLE = 4;
+const STATE_TRANSPORT = 5;
+
+// Colors (RGBA for Canvas)
+const COL_LOCKED = "rgba(0, 0, 0, 0.75)"; 
+const COL_ROLLABLE = "rgba(0, 188, 212, 0.4)"; 
+const COL_TARGET_LOCKED = "rgba(255, 82, 82, 0.6)"; 
+const COL_TARGET_ROLLABLE = "rgba(156, 39, 176, 0.6)"; 
+const COL_TRANSPORT = "rgba(118, 255, 3, 0.6)"; 
+
+// --- Application State ---
+let gridData = Array(GRID_ROWS).fill().map(() => Array(GRID_COLS).fill(STATE_LOCKED));
+let targets = new Set(); 
+
+// Camera
+let camX = 0;
+let camY = 0;
+let scale = 0.15; 
+
+// Interaction
+let isDragging = false;
+let lastMouseX, lastMouseY;
+let dragStartX, dragStartY; 
+
+// Assets
+const mapImage = new Image();
+let mapLoaded = false;
+
+// DOM Elements
+const canvas = document.getElementById('mapCanvas');
+const ctx = canvas.getContext('2d', { alpha: false }); 
+const container = document.getElementById('canvas-container');
+const simResultsBox = document.getElementById('sim-results');
+const fileInput = document.getElementById('file-input');
+const simCountInput = document.getElementById('sim-count');
+const helpModal = document.getElementById('help-modal');
+
+// --- Initialization ---
+function init() {
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    mapImage.src = MAP_FILENAME;
+    mapImage.onload = () => {
+        mapLoaded = true;
+        recenterView();
+        draw();
+    };
+    mapImage.onerror = () => {
+        alert("Error loading map image! Ensure '" + MAP_FILENAME + "' is in the same folder as this HTML file.");
+    };
+
+    setupEventListeners();
+    requestAnimationFrame(drawLoop);
+}
+
+function resizeCanvas() {
+    canvas.width = container.clientWidth;
+    canvas.height = container.clientHeight;
+    draw();
+}
+
+function setupEventListeners() {
+    canvas.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    canvas.addEventListener('wheel', onWheel, { passive: false });
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+    document.getElementById('btn-save').addEventListener('click', saveGrid);
+    document.getElementById('btn-load').addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', loadGrid);
+    document.getElementById('btn-clear').addEventListener('click', clearGrid);
+    document.getElementById('btn-recenter').addEventListener('click', recenterView);
+    document.getElementById('btn-roll').addEventListener('click', rollFate);
+    document.getElementById('btn-sim-any').addEventListener('click', () => runSimulation('any'));
+    document.getElementById('btn-sim-all').addEventListener('click', () => runSimulation('all'));
+    
+    // Help Modal
+    document.getElementById('btn-help').addEventListener('click', () => {
+        helpModal.style.display = 'flex';
+    });
+    
+    // Close modal on outside click
+    helpModal.addEventListener('click', (e) => {
+        if (e.target === helpModal) closeHelp();
+    });
+}
+
+function closeHelp() {
+    helpModal.style.display = 'none';
+}
+
+// --- Rendering Loop ---
+function drawLoop() {
+    draw();
+    requestAnimationFrame(drawLoop);
+}
+
+function draw() {
+    ctx.fillStyle = "#202020";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (!mapLoaded) {
+        ctx.fillStyle = "white";
+        ctx.font = "20px sans-serif";
+        ctx.fillText("Loading Map...", 50, 50);
+        return;
+    }
+
+    ctx.save();
+    ctx.translate(camX, camY);
+    ctx.scale(scale, scale);
+
+    ctx.drawImage(mapImage, 0, 0);
+
+    // Visible Culling Logic
+    const worldLeft = -camX / scale;
+    const worldTop = -camY / scale;
+    const worldRight = (-camX + canvas.width) / scale;
+    const worldBottom = (-camY + canvas.height) / scale;
+
+    const startCol = Math.max(0, Math.floor(worldLeft / CHUNK_SIZE));
+    const endCol = Math.min(GRID_COLS, Math.ceil(worldRight / CHUNK_SIZE));
+    const startRow = Math.max(0, Math.floor(worldTop / CHUNK_SIZE));
+    const endRow = Math.min(GRID_ROWS, Math.ceil(worldBottom / CHUNK_SIZE));
+
+    ctx.lineWidth = 1 / scale; 
+    const fontSize = Math.max(10, Math.floor(24 / scale));
+    ctx.font = `${fontSize}px sans-serif`;
+    ctx.textAlign = "right";
+    ctx.textBaseline = "bottom";
+
+    for (let r = startRow; r < endRow; r++) {
+        for (let c = startCol; c < endCol; c++) {
+            const state = gridData[r][c];
+            const x = c * CHUNK_SIZE;
+            const y = r * CHUNK_SIZE;
+
+            let fillStyle = null;
+            switch (state) {
+                case STATE_LOCKED: fillStyle = COL_LOCKED; break;
+                case STATE_ROLLABLE: fillStyle = COL_ROLLABLE; break;
+                case STATE_TARGET_LOCKED: fillStyle = COL_TARGET_LOCKED; break;
+                case STATE_TARGET_ROLLABLE: fillStyle = COL_TARGET_ROLLABLE; break;
+                case STATE_TRANSPORT: fillStyle = COL_TRANSPORT; break;
+            }
+
+            if (fillStyle) {
+                ctx.fillStyle = fillStyle;
+                ctx.fillRect(x, y, CHUNK_SIZE + 0.5, CHUNK_SIZE + 0.5);
+            }
+
+            if (scale > 0.15) {
+                 ctx.strokeStyle = "rgba(50, 50, 50, 0.5)";
+                 ctx.strokeRect(x, y, CHUNK_SIZE, CHUNK_SIZE);
+            }
+
+            if (scale > 0.8 && state !== STATE_LOCKED) {
+                ctx.fillStyle = "white";
+                // Show X,Y (Col,Row)
+                ctx.fillText(`${c},${r}`, x + CHUNK_SIZE - 5, y + CHUNK_SIZE - 5);
+            }
+        }
+    }
+    ctx.restore();
+}
+
+// --- Camera & Input ---
+function screenToGrid(screenX, screenY) {
+    const worldX = (screenX - camX) / scale;
+    const worldY = (screenY - camY) / scale;
+    const col = Math.floor(worldX / CHUNK_SIZE);
+    const row = Math.floor(worldY / CHUNK_SIZE);
+    return { row, col, isValid: (col >= 0 && col < GRID_COLS && row >= 0 && row < GRID_ROWS) };
+}
+
+function onMouseDown(e) {
+    isDragging = true;
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    container.classList.add('dragging');
+}
+
+function onMouseMove(e) {
+    if (!isDragging) return;
+    const dx = e.clientX - lastMouseX;
+    const dy = e.clientY - lastMouseY;
+    camX += dx;
+    camY += dy;
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
+}
+
+function onMouseUp(e) {
+    if (!isDragging) return;
+    isDragging = false;
+    container.classList.remove('dragging');
+    const dist = Math.hypot(e.clientX - dragStartX, e.clientY - dragStartY);
+    if (dist < 5) handleMouseClick(e);
+}
+
+function handleMouseClick(e) {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const { row, col, isValid } = screenToGrid(mx, my);
+
+    if (!isValid) return;
+
+    if (e.button === 0 && !e.shiftKey) {
+        if (gridData[row][col] === STATE_UNLOCKED) {
+            gridData[row][col] = STATE_LOCKED;
+            checkNeighborsIntegrity(row, col);
+        } else {
+            gridData[row][col] = STATE_UNLOCKED;
+            updateNeighbors(row, col);
+        }
+        if (targets.has(`${row},${col}`)) targets.delete(`${row},${col}`);
+
+    } else if (e.button === 2) {
+        const s = gridData[row][col];
+        if (s === STATE_LOCKED) gridData[row][col] = STATE_ROLLABLE;
+        else if (s === STATE_ROLLABLE) gridData[row][col] = STATE_LOCKED;
+
+    } else if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
+        const s = gridData[row][col];
+        const targetKey = `${row},${col}`;
+
+        if (s === STATE_TRANSPORT) {
+            gridData[row][col] = STATE_LOCKED;
+            targets.delete(targetKey);
+        } else if (s === STATE_TARGET_LOCKED || s === STATE_TARGET_ROLLABLE) {
+             gridData[row][col] = STATE_TRANSPORT;
+        } else {
+            targets.add(targetKey);
+            if (hasUnlockedNeighbor(row, col)) gridData[row][col] = STATE_TARGET_ROLLABLE;
+            else gridData[row][col] = STATE_TARGET_LOCKED;
+        }
+    }
+}
+
+function onWheel(e) {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const worldXBefore = (mx - camX) / scale;
+    const worldYBefore = (my - camY) / scale;
+
+    if (e.deltaY < 0) scale *= ZOOM_SPEED;
+    else scale /= ZOOM_SPEED;
+    scale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, scale));
+
+    camX = mx - worldXBefore * scale;
+    camY = my - worldYBefore * scale;
+}
+
+// --- Logic ---
+function hasUnlockedNeighbor(r, c) {
+    const neighbors = [[r-1,c], [r+1,c], [r,c-1], [r,c+1]];
+    for (let [nr, nc] of neighbors) {
+        if (nr>=0 && nr<GRID_ROWS && nc>=0 && nc<GRID_COLS) {
+            if (gridData[nr][nc] === STATE_UNLOCKED) return true;
+        }
+    }
+    return false;
+}
+
+function updateNeighbors(r, c) {
+    const neighbors = [[r-1,c], [r+1,c], [r,c-1], [r,c+1]];
+    for (let [nr, nc] of neighbors) {
+        if (nr>=0 && nr<GRID_ROWS && nc>=0 && nc<GRID_COLS) {
+            const s = gridData[nr][nc];
+            if (s === STATE_LOCKED) gridData[nr][nc] = STATE_ROLLABLE;
+            else if (s === STATE_TARGET_LOCKED) gridData[nr][nc] = STATE_TARGET_ROLLABLE;
+        }
+    }
+}
+
+function checkNeighborsIntegrity(r, c) {
+     const neighbors = [[r-1,c], [r+1,c], [r,c-1], [r,c+1]];
+    for (let [nr, nc] of neighbors) {
+        if (nr>=0 && nr<GRID_ROWS && nc>=0 && nc<GRID_COLS) {
+            const s = gridData[nr][nc];
+            if (s === STATE_ROLLABLE && !hasUnlockedNeighbor(nr, nc)) {
+                gridData[nr][nc] = STATE_LOCKED;
+            } else if (s === STATE_TARGET_ROLLABLE && !hasUnlockedNeighbor(nr, nc)) {
+                 gridData[nr][nc] = STATE_TARGET_LOCKED;
+            }
+        }
+    }
+}
+
+function recenterView() {
+    let rSum = 0, cSum = 0, count = 0;
+    for(let r=0; r<GRID_ROWS; r++) {
+        for(let c=0; c<GRID_COLS; c++) {
+            if(gridData[r][c] === STATE_UNLOCKED) {
+                rSum += r; cSum += c; count++;
+            }
+        }
+    }
+    let targetR = GRID_ROWS / 2, targetC = GRID_COLS / 2;
+    if (count > 0) { targetR = rSum/count; targetC = cSum/count; }
+
+    const worldCenterX = (targetC * CHUNK_SIZE) + (CHUNK_SIZE/2);
+    const worldCenterY = (targetR * CHUNK_SIZE) + (CHUNK_SIZE/2);
+    const screenCenterX = canvas.width / 2;
+    const screenCenterY = canvas.height / 2;
+
+    camX = screenCenterX - (worldCenterX * scale);
+    camY = screenCenterY - (worldCenterY * scale);
+}
+
+function rollFate() {
+    let rollable = [];
+    for(let r=0; r<GRID_ROWS; r++) {
+        for(let c=0; c<GRID_COLS; c++) {
+            const s = gridData[r][c];
+            if(s === STATE_ROLLABLE || s === STATE_TARGET_ROLLABLE || s === STATE_TRANSPORT) {
+                rollable.push({r, c});
+            }
+        }
+    }
+
+    if(rollable.length === 0) {
+        alert("No Rollable tiles found!");
+        return;
+    }
+
+    const winner = rollable[Math.floor(Math.random() * rollable.length)];
+    gridData[winner.r][winner.c] = STATE_UNLOCKED;
+    updateNeighbors(winner.r, winner.c);
+    
+    const targetKey = `${winner.r},${winner.c}`;
+    if(targets.has(targetKey)) {
+        targets.delete(targetKey);
+        alert("Victory! Target Reached!");
+    }
+    recenterView();
+}
+
+// --- Saving / Loading ---
+function saveGrid() {
+    const saveData = {
+        rows: GRID_ROWS, cols: GRID_COLS,
+        data: gridData,
+        targets: Array.from(targets) 
+    };
+    const blob = new Blob([JSON.stringify(saveData)], {type: "application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = "osrs_grid_save.json";
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function loadGrid(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        try {
+            const loaded = JSON.parse(event.target.result);
+            if (loaded.rows !== GRID_ROWS || loaded.cols !== GRID_COLS) throw new Error("Grid dimensions mismatch.");
+            gridData = loaded.data;
+            targets = new Set(loaded.targets);
+            recenterView();
+            alert("Grid loaded successfully.");
+        } catch (err) {
+            alert("Error loading save file: " + err.message);
+        }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; 
+}
+
+function clearGrid() {
+    if (confirm("Are you sure you want to reset the grid?")) {
+        gridData = Array(GRID_ROWS).fill().map(() => Array(GRID_COLS).fill(STATE_LOCKED));
+        targets.clear();
+    }
+}
+
+// --- Simulations ---
+function runSimulation(mode) {
+    if (targets.size === 0) { alert("Set at least one target first."); return; }
+    
+    let simRuns = parseInt(simCountInput.value);
+    if (isNaN(simRuns) || simRuns < 1) simRuns = 1000;
+
+    simResultsBox.textContent = `Running ${mode === 'any' ? 'Race' : 'Clear'} simulation (${simRuns} runs)...`;
+    
+    setTimeout(() => {
+        let allRollResults = []; 
+        let targetHits = {}; 
+
+        const startState = JSON.parse(JSON.stringify(gridData)); 
+        const startTargets = new Set(targets);
+
+        for (let i = 0; i < simRuns; i++) {
+            let tempGrid = JSON.parse(JSON.stringify(startState));
+            let tempTargets = new Set(startTargets);
+            let rollableList = [];
+            let visited = new Set();
+
+            for(let r=0; r<GRID_ROWS; r++) {
+                for(let c=0; c<GRID_COLS; c++) {
+                    const s = tempGrid[r][c];
+                    if(s === STATE_UNLOCKED) visited.add(`${r},${c}`);
+                    if(s === STATE_ROLLABLE || s === STATE_TARGET_ROLLABLE || s === STATE_TRANSPORT) {
+                        rollableList.push({r,c});
+                    }
+                }
+            }
+
+            let rolls = 0;
+            let runFinished = false;
+
+            while (rollableList.length > 0) {
+                rolls++;
+                const idx = Math.floor(Math.random() * rollableList.length);
+                const winner = rollableList[idx];
+                
+                rollableList[idx] = rollableList[rollableList.length - 1];
+                rollableList.pop();
+
+                const targetKey = `${winner.r},${winner.c}`;
+
+                if (mode === 'any' && tempTargets.has(targetKey)) {
+                    targetHits[targetKey] = (targetHits[targetKey] || 0) + 1;
+                    runFinished = true; break;
+                } else if (mode === 'all' && tempTargets.has(targetKey)) {
+                    tempTargets.delete(targetKey);
+                    if (tempTargets.size === 0) { runFinished = true; break; }
+                }
+                
+                tempGrid[winner.r][winner.c] = STATE_UNLOCKED;
+                visited.add(targetKey);
+
+                const neighbors = [[winner.r-1,winner.c], [winner.r+1,winner.c], [winner.r,winner.c-1], [winner.r,winner.c+1]];
+                for(let [nr, nc] of neighbors) {
+                    if(nr>=0 && nr<GRID_ROWS && nc>=0 && nc<GRID_COLS && !visited.has(`${nr},${nc}`)) {
+                         visited.add(`${nr},${nc}`);
+                         rollableList.push({r:nr, c:nc});
+                    }
+                }
+            }
+
+            if (!runFinished) { alert("Simulation failed: Targets unreachable."); return; }
+            allRollResults.push(rolls);
+        }
+
+        const totalRolls = allRollResults.reduce((a,b) => a+b, 0);
+        const avg = (totalRolls / simRuns).toFixed(1);
+        const minRolls = Math.min(...allRollResults);
+        const maxRolls = Math.max(...allRollResults);
+
+        const bestCaseCount = allRollResults.filter(r => r === minRolls).length;
+        const worstCaseCount = allRollResults.filter(r => r === maxRolls).length;
+        const bestCasePercent = ((bestCaseCount / simRuns) * 100).toFixed(1);
+        const worstCasePercent = ((worstCaseCount / simRuns) * 100).toFixed(1);
+
+        let output = `=== Results (${mode === 'any' ? 'Race' : 'Clear'}) ===\n`;
+        output += `Runs: ${simRuns}\n`;
+        output += `Average Rolls: ${avg}\n`;
+        output += `Best Case: ${minRolls} (${bestCasePercent}%)\n`;
+        output += `Worst Case: ${maxRolls} (${worstCasePercent}%)\n`;
+
+        if (mode === 'any') {
+            output += `\nTarget Probabilities (First Hit):\n`;
+            Object.entries(targetHits).sort((a,b) => b[1] - a[1]).forEach(([key, count]) => {
+                const [r, c] = key.split(',');
+                output += `  Coords ${c},${r}: ${((count/simRuns)*100).toFixed(1)}%\n`;
+            });
+        }
+        simResultsBox.textContent = output;
+
+    }, 50); 
+}
+
+// Start application
+init();
+</script>
+</body>
+</html>
