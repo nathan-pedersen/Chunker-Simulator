@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OSRS Chunk Picker v43 (Web - With Help)</title>
+    <title>OSRS Chunk Sim</title>
     <style>
         :root {
             --bg-color: #202020;
@@ -25,9 +25,9 @@
             overflow: hidden;
         }
 
-        /* Sidebar Styles */
+        /* Sidebar */
         #sidebar {
-            width: 220px;
+            width: 240px;
             background-color: var(--sidebar-color);
             padding: 15px;
             display: flex;
@@ -35,7 +35,7 @@
             gap: 10px;
             box-shadow: 2px 0 5px rgba(0,0,0,0.5);
             z-index: 10;
-            overflow-y: auto;
+            overflow-y: hidden; 
         }
 
         #canvas-container {
@@ -45,35 +45,27 @@
             cursor: grab;
         }
 
-        #canvas-container.dragging {
-            cursor: grabbing;
-        }
+        #canvas-container.dragging { cursor: grabbing; }
 
-        canvas {
-            display: block;
-            background-color: var(--bg-color);
-        }
+        canvas { display: block; background-color: var(--bg-color); }
 
-        h2 { margin-top: 0; margin-bottom: 15px; font-size: 1.2rem;}
+        h2 { margin-top: 0; margin-bottom: 10px; font-size: 1.2rem;}
         hr { width: 100%; border: 1px solid #555; margin: 5px 0;}
 
         button {
             background-color: var(--btn-color);
             color: var(--text-color);
             border: none;
-            padding: 10px;
+            padding: 8px 10px;
             cursor: pointer;
             text-align: left;
-            font-size: 14px;
+            font-size: 13px;
             border-radius: 4px;
             transition: background-color 0.2s;
+            width: 100%;
         }
+        button:hover { background-color: var(--btn-hover); }
 
-        button:hover {
-            background-color: var(--btn-hover);
-        }
-
-        /* Input Group for Sim Runs */
         .input-group {
             display: flex;
             align-items: center;
@@ -82,35 +74,69 @@
             padding: 5px;
             border-radius: 4px;
         }
-
         .input-group label { font-size: 12px; }
-        
         .input-group input { 
-            width: 80px; 
-            background: #222; 
-            border: 1px solid #555; 
-            color: white; 
-            padding: 4px;
-            text-align: right;
+            width: 70px; background: #222; border: 1px solid #555; 
+            color: white; padding: 4px; text-align: right;
         }
 
-        /* Special Buttons */
+        /* Buttons */
         #btn-roll { background-color: #ff9800; color: black; font-weight: bold; text-align: center;}
         #btn-sim-any { background-color: #9c27b0; }
         #btn-sim-all { background-color: #7b1fa2; }
-        #btn-help { background-color: var(--accent-color); font-weight: bold; text-align: center; margin-top: auto;}
+        #btn-help { background-color: var(--accent-color); font-weight: bold; text-align: center; margin-top: 10px;}
+        
+        .analysis-btn { background-color: #009688; display: none; text-align: center; }
+        #btn-path-avg { background-color: #00796b; } 
 
         #sim-results {
-            margin-top: 10px;
             background-color: rgba(0,0,0,0.3);
             padding: 10px;
             font-family: monospace;
-            font-size: 12px;
+            font-size: 11px;
             white-space: pre-wrap;
-            max-height: 200px;
+            max-height: 150px;
             overflow-y: auto;
             border: 1px solid #444;
+            border-radius: 4px;
         }
+
+        /* Unlocked List Container */
+        #unlocked-container {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1; 
+            min-height: 100px;
+            margin-top: 10px;
+            background-color: rgba(0,0,0,0.2);
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 5px;
+        }
+
+        #unlocked-header {
+            font-size: 12px;
+            font-weight: bold;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #555;
+            margin-bottom: 5px;
+        }
+
+        #unlocked-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        #unlocked-list li {
+            padding: 2px 5px;
+            border-bottom: 1px solid #333;
+            color: #ddd;
+        }
+        #unlocked-list li:last-child { border-bottom: none; }
 
         #file-input { display: none; }
 
@@ -119,7 +145,7 @@
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.8);
             z-index: 100;
             justify-content: center;
             align-items: center;
@@ -127,21 +153,21 @@
 
         .modal-content {
             background: var(--sidebar-color);
-            padding: 25px;
+            padding: 15px;
             border-radius: 8px;
-            max-width: 600px;
+            max-width: 90%;
             width: 90%;
-            max-height: 85vh;
-            overflow-y: auto;
+            height: 90%;
+            display: flex;
+            flex-direction: column;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            position: relative;
         }
 
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             border-bottom: 1px solid #555;
             padding-bottom: 10px;
         }
@@ -156,31 +182,42 @@
         }
         .modal-close:hover { color: white; }
 
-        .key-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .color-box {
-            width: 20px; height: 20px;
-            margin-right: 15px;
+        /* Path Viewer Specifics */
+        #pathCanvasContainer {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+            background: #111;
             border: 1px solid #555;
+            cursor: grab;
         }
-        .instructions h3 { border-bottom: 1px solid #444; padding-bottom: 5px; margin-top: 20px;}
-        .instructions ul { padding-left: 20px; line-height: 1.6; }
-        .instructions li { margin-bottom: 5px; }
+        #pathCanvasContainer.dragging { cursor: grabbing; }
+
+        /* Help Modal Specifics */
+        #help-modal .modal-content { max-width: 600px; height: auto; max-height: 85vh; overflow-y: auto; }
+        .key-item { display: flex; align-items: center; margin-bottom: 10px; }
+        .color-box { width: 20px; height: 20px; margin-right: 15px; border: 1px solid #555; }
+
+        /* Graph Canvas */
+        #graph-modal .modal-content { max-width: 900px; height: auto; }
+        #graphCanvas { background-color: #222; border: 1px solid #555; width: 100%; height: 400px; cursor: col-resize; }
 
     </style>
 </head>
 <body>
 
 <div id="sidebar">
-    <h2>OSRS Picker v43</h2>
-    <button id="btn-save">Save Grid</button>
-    <button id="btn-load">Load Grid</button>
+    <h2>OSRS Chunk Sim v66</h2>
+    <div style="display:flex; gap:5px;">
+        <button id="btn-save">Save</button>
+        <button id="btn-load">Load</button>
+    </div>
     <input type="file" id="file-input" accept=".json">
-    <button id="btn-clear">Clear Grid</button>
-    <button id="btn-recenter">Recenter View</button>
+    
+    <div style="display:flex; gap:5px;">
+        <button id="btn-clear">Clear</button>
+        <button id="btn-recenter">Center</button>
+    </div>
     <hr>
     
     <div class="input-group">
@@ -192,7 +229,17 @@
     <button id="btn-sim-any">Simulate (Race)</button>
     <button id="btn-sim-all">Simulate (Clear)</button>
     
-    <div id="sim-results">Simulation results will appear here.</div>
+    <div id="sim-results">Sim results here...</div>
+    
+    <button id="btn-graph" class="analysis-btn">View Graph</button>
+    <button id="btn-path-best" class="analysis-btn">View Best Path</button>
+    <button id="btn-path-avg" class="analysis-btn">View Avg Path</button>
+    
+    <div id="unlocked-container">
+        <div id="unlocked-header">Unlocked Tiles <span id="unlocked-count">(0)</span></div>
+        <ul id="unlocked-list"></ul>
+    </div>
+
     <button id="btn-help">Help / Usage</button>
 </div>
 
@@ -204,32 +251,49 @@
     <div class="modal-content">
         <div class="modal-header">
             <h2 style="margin:0">Usage Guide</h2>
-            <button class="modal-close" onclick="closeHelp()">×</button>
+            <button class="modal-close" onclick="closeModal('help-modal')">×</button>
         </div>
         <div class="instructions">
-            <h3>Legend</h3>
-            <div class="key-item"><div class="color-box" style="background:rgba(0,0,0,0.75)"></div> Locked (Fog)</div>
+            <div class="key-item"><div class="color-box" style="background:rgba(0,0,0,0.60)"></div> Locked (Fog)</div>
             <div class="key-item"><div class="color-box" style="background:#202020; border:1px dashed #555"></div> Unlocked (Transparent)</div>
             <div class="key-item"><div class="color-box" style="background:rgba(0,188,212,0.4)"></div> Rollable (Cyan)</div>
             <div class="key-item"><div class="color-box" style="background:rgba(255,82,82,0.6)"></div> Target (Red)</div>
-            <div class="key-item"><div class="color-box" style="background:rgba(156,39,176,0.6)"></div> Reachable Target (Purple)</div>
             <div class="key-item"><div class="color-box" style="background:rgba(118,255,3,0.6)"></div> Transport Target (Green)</div>
-
-            <h3>Controls</h3>
+            <div class="key-item"><div class="color-box" style="background:rgba(0,0,0,0.85)"></div> Void (Unplayable)</div>
+            <hr>
             <ul>
                 <li><strong>Pan:</strong> Click and <b>Hold Left Mouse</b> to drag.</li>
                 <li><strong>Zoom:</strong> Use <b>Scroll Wheel</b>.</li>
                 <li><strong>Toggle Unlock:</strong> <b>Left Click</b> on a tile.</li>
                 <li><strong>Force Rollable:</strong> <b>Right Click</b> on a tile.</li>
-                <li><strong>Set Target:</strong> <b>Middle Click</b> (or Shift+Click) to cycle:
-                    <br><i>Target → Transport (Green) → Off</i>.</li>
+                <li><strong>Set Target:</strong> <b>Middle Click</b> (or Shift+Click) to cycle targets.</li>
             </ul>
+        </div>
+    </div>
+</div>
 
-            <h3>Simulation</h3>
-            <ul>
-                <li><strong>Race:</strong> Average rolls to hit the FIRST target.</li>
-                <li><strong>Clear:</strong> Average rolls to hit ALL targets.</li>
-            </ul>
+<div id="graph-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 style="margin:0">Simulation Distribution</h2>
+            <button class="modal-close" onclick="closeModal('graph-modal')">×</button>
+        </div>
+        <canvas id="graphCanvas"></canvas>
+        <div style="text-align: center; margin-top: 10px; color: #aaa; font-size: 12px;">Scroll to Zoom X-Axis | Drag to Pan X-Axis</div>
+    </div>
+</div>
+
+<div id="path-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="path-modal-title" style="margin:0">Path Replay</h2>
+            <button class="modal-close" onclick="closeModal('path-modal')">×</button>
+        </div>
+        <div id="pathCanvasContainer">
+            <canvas id="pathCanvas"></canvas>
+        </div>
+        <div style="margin-top:10px; font-size:12px; color:#aaa; text-align:center;">
+            Scroll to Zoom | Drag to Pan | Animation loops automatically
         </div>
     </div>
 </div>
@@ -252,22 +316,61 @@ const STATE_ROLLABLE = 2;
 const STATE_TARGET_LOCKED = 3;
 const STATE_TARGET_ROLLABLE = 4;
 const STATE_TRANSPORT = 5;
+const STATE_VOID = 6; 
 
-// Colors (RGBA for Canvas)
-const COL_LOCKED = "rgba(0, 0, 0, 0.75)"; 
+// Colors
+const COL_LOCKED = "rgba(0, 0, 0, 0.60)"; 
 const COL_ROLLABLE = "rgba(0, 188, 212, 0.4)"; 
 const COL_TARGET_LOCKED = "rgba(255, 82, 82, 0.6)"; 
 const COL_TARGET_ROLLABLE = "rgba(156, 39, 176, 0.6)"; 
 const COL_TRANSPORT = "rgba(118, 255, 3, 0.6)"; 
+const COL_VOID = "rgba(0, 0, 0, 0.85)";
+
+// VOID COORDINATES
+const INVALID_TILES = [
+[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0],[9,0],[10,0],[11,0],[12,0],[13,0],[14,0],[15,0],[16,0],[17,0],[18,0],[19,0],[20,0],[21,0],[22,0],[23,0],[24,0],[25,0],[26,0],[27,0],[28,0],[29,0],[30,0],[31,0],[32,0],[33,0],[34,0],[35,0],[36,0],[37,0],[38,0],[39,0],[40,0],[41,0],[42,0],[43,0],[44,0],[45,0],[46,0],[47,0],[0,1],[1,1],[2,1],[3,1],[4,1],[5,1],[6,1],[7,1],[8,1],[9,1],[10,1],[11,1],[12,1],[13,1],[14,1],[15,1],[16,1],[17,1],[18,1],[19,1],[20,1],[21,1],[22,1],[23,1],[24,1],[25,1],[26,1],[27,1],[28,1],[29,1],[30,1],[31,1],[32,1],[33,1],[34,1],[35,1],[36,1],[40,1],[41,1],[42,1],[43,1],[44,1],[45,1],[46,1],[47,1],[0,2],[1,2],[2,2],[3,2],[4,2],[5,2],[6,2],[7,2],[8,2],[12,2],[13,2],[14,2],[16,2],[17,2],[18,2],[19,2],[21,2],[22,2],[23,2],[24,2],[25,2],[27,2],[28,2],[29,2],[31,2],[32,2],[33,2],[34,2],[35,2],[36,2],[40,2],[42,2],[43,2],[44,2],[46,2],[47,2],[0,3],[1,3],[2,3],[3,3],[4,3],[5,3],[6,3],[7,3],[14,3],[15,3],[16,3],[17,3],[18,3],[19,3],[20,3],[21,3],[22,3],[24,3],[25,3],[27,3],[29,3],[30,3],[31,3],[32,3],[33,3],[34,3],[35,3],[36,3],[44,3],[45,3],[46,3],[47,3],[0,4],[1,4],[2,4],[3,4],[4,4],[5,4],[6,4],[15,4],[16,4],[19,4],[20,4],[21,4],[22,4],[23,4],[24,4],[25,4],[26,4],[27,4],[28,4],[38,4],[39,4],[40,4],[41,4],[44,4],[45,4],[46,4],[47,4],[0,5],[1,5],[2,5],[3,5],[4,5],[15,5],[16,5],[19,5],[20,5],[26,5],[38,5],[39,5],[40,5],[41,5],[45,5],[46,5],[47,5],[0,6],[1,6],[2,6],[14,6],[15,6],[16,6],[17,6],[18,6],[20,6],[23,6],[25,6],[26,6],[38,6],[39,6],[40,6],[45,6],[46,6],[47,6],[0,7],[1,7],[2,7],[14,7],[15,7],[16,7],[17,7],[18,7],[19,7],[20,7],[22,7],[23,7],[25,7],[38,7],[39,7],[40,7],[47,7],[0,8],[1,8],[2,8],[14,8],[15,8],[16,8],[18,8],[19,8],[20,8],[22,8],[23,8],[24,8],[38,8],[40,8],[44,8],[46,8],[47,8],[0,9],[1,9],[2,9],[14,9],[15,9],[16,9],[17,9],[18,9],[19,9],[23,9],[39,9],[40,9],[41,9],[42,9],[43,9],[44,9],[45,9],[46,9],[47,9],[0,10],[1,10],[2,10],[15,10],[16,10],[17,10],[19,10],[25,10],[43,10],[45,10],[46,10],[47,10],[0,11],[1,11],[2,11],[15,11],[16,11],[17,11],[18,11],[43,11],[44,11],[45,11],[46,11],[47,11],[0,12],[1,12],[7,12],[15,12],[16,12],[17,12],[44,12],[45,12],[46,12],[47,12],[0,13],[1,13],[10,13],[11,13],[12,13],[15,13],[16,13],[17,13],[44,13],[45,13],[46,13],[47,13],[0,14],[1,14],[12,14],[13,14],[15,14],[16,14],[17,14],[44,14],[45,14],[46,14],[47,14],[0,15],[1,15],[2,15],[12,15],[13,15],[14,15],[15,15],[16,15],[17,15],[44,15],[45,15],[46,15],[47,15],[0,16],[1,16],[2,16],[3,16],[14,16],[15,16],[16,16],[43,16],[45,16],[46,16],[47,16],[0,17],[1,17],[2,17],[16,17],[17,17],[27,17],[40,17],[41,17],[42,17],[43,17],[44,17],[45,17],[46,17],[47,17],[0,18],[1,18],[2,18],[3,18],[14,18],[15,18],[16,18],[17,18],[27,18],[40,18],[41,18],[46,18],[47,18],[0,19],[1,19],[2,19],[3,19],[13,19],[15,19],[16,19],[22,19],[27,19],[33,19],[41,19],[46,19],[47,19],[0,20],[1,20],[2,20],[3,20],[4,20],[13,20],[14,20],[15,20],[16,20],[22,20],[26,20],[27,20],[32,20],[33,20],[40,20],[41,20],[43,20],[46,20],[47,20],[0,21],[1,21],[2,21],[4,21],[5,21],[8,21],[9,21],[10,21],[11,21],[12,21],[13,21],[14,21],[15,21],[16,21],[22,21],[26,21],[27,21],[28,21],[29,21],[31,21],[39,21],[40,21],[41,21],[42,21],[43,21],[45,21],[46,21],[47,21],[0,22],[1,22],[5,22],[6,22],[7,22],[8,22],[10,22],[11,22],[12,22],[13,22],[14,22],[16,22],[17,22],[22,22],[23,22],[24,22],[25,22],[26,22],[29,22],[30,22],[31,22],[32,22],[33,22],[39,22],[40,22],[42,22],[43,22],[44,22],[45,22],[46,22],[47,22],[0,23],[1,23],[2,23],[4,23],[5,23],[6,23],[7,23],[9,23],[10,23],[11,23],[12,23],[13,23],[14,23],[15,23],[16,23],[18,23],[19,23],[20,23],[21,23],[22,23],[24,23],[25,23],[26,23],[29,23],[31,23],[32,23],[33,23],[39,23],[40,23],[41,23],[42,23],[43,23],[44,23],[45,23],[46,23],[47,23],[0,24],[1,24],[2,24],[3,24],[4,24],[5,24],[6,24],[7,24],[8,24],[9,24],[10,24],[11,24],[13,24],[14,24],[15,24],[17,24],[18,24],[19,24],[20,24],[21,24],[22,24],[23,24],[24,24],[25,24],[27,24],[28,24],[29,24],[30,24],[31,24],[33,24],[36,24],[38,24],[39,24],[40,24],[41,24],[46,24],[47,24],[0,25],[1,25],[2,25],[3,25],[4,25],[5,25],[6,25],[7,25],[8,25],[9,25],[10,25],[11,25],[12,25],[13,25],[14,25],[15,25],[16,25],[18,25],[19,25],[20,25],[21,25],[22,25],[23,25],[24,25],[25,25],[27,25],[28,25],[29,25],[30,25],[32,25],[33,25],[34,25],[35,25],[36,25],[37,25],[38,25],[39,25],[40,25],[41,25],[46,25],[47,25],[0,26],[1,26],[2,26],[3,26],[4,26],[5,26],[6,26],[7,26],[8,26],[9,26],[10,26],[11,26],[12,26],[13,26],[14,26],[15,26],[16,26],[17,26],[18,26],[19,26],[20,26],[21,26],[22,26],[23,26],[25,26],[26,26],[27,26],[29,26],[30,26],[31,26],[32,26],[36,26],[37,26],[38,26],[39,26],[40,26],[45,26],[46,26],[47,26],[0,27],[1,27],[2,27],[3,27],[4,27],[5,27],[6,27],[7,27],[8,27],[9,27],[10,27],[11,27],[12,27],[15,27],[16,27],[17,27],[18,27],[19,27],[20,27],[21,27],[22,27],[23,27],[24,27],[25,27],[26,27],[27,27],[28,27],[29,27],[30,27],[31,27],[32,27],[37,27],[38,27],[39,27],[41,27],[43,27],[44,27],[45,27],[46,27],[47,27],[0,28],[1,28],[2,28],[3,28],[4,28],[5,28],[6,28],[7,28],[8,28],[9,28],[10,28],[11,28],[12,28],[15,28],[16,28],[17,28],[18,28],[19,28],[20,28],[21,28],[22,28],[23,28],[24,28],[25,28],[27,28],[28,28],[29,28],[30,28],[31,28],[32,28],[37,28],[38,28],[39,28],[41,28],[42,28],[43,28],[44,28],[45,28],[46,28],[47,28],[0,29],[1,29],[2,29],[3,29],[4,29],[5,29],[6,29],[7,29],[8,29],[9,29],[10,29],[11,29],[12,29],[13,29],[14,29],[15,29],[16,29],[17,29],[18,29],[20,29],[21,29],[22,29],[23,29],[24,29],[25,29],[26,29],[27,29],[28,29],[30,29],[31,29],[32,29],[33,29],[37,29],[38,29],[39,29],[40,29],[41,29],[42,29],[43,29],[44,29],[45,29],[46,29],[47,29],[0,30],[1,30],[2,30],[3,30],[4,30],[5,30],[6,30],[7,30],[8,30],[9,30],[10,30],[11,30],[12,30],[13,30],[14,30],[15,30],[16,30],[17,30],[18,30],[19,30],[20,30],[21,30],[22,30],[23,30],[24,30],[25,30],[26,30],[27,30],[28,30],[29,30],[30,30],[32,30],[33,30],[34,30],[35,30],[36,30],[37,30],[38,30],[39,30],[40,30],[41,30],[42,30],[43,30],[44,30],[45,30],[46,30],[47,30],[0,31],[1,31],[2,31],[3,31],[4,31],[5,31],[6,31],[7,31],[8,31],[9,31],[10,31],[11,31],[12,31],[13,31],[14,31],[15,31],[16,31],[17,31],[18,31],[19,31],[20,31],[21,31],[22,31],[23,31],[24,31],[25,31],[26,31],[27,31],[28,31],[29,31],[30,31],[31,31],[32,31],[33,31],[34,31],[35,31],[36,31],[38,31],[39,31],[40,31],[41,31],[42,31],[43,31],[44,31],[45,31],[46,31],[47,31],[0,32],[1,32],[2,32],[3,32],[4,32],[5,32],[6,32],[7,32],[8,32],[9,32],[10,32],[11,32],[12,32],[13,32],[14,32],[15,32],[16,32],[17,32],[18,32],[19,32],[20,32],[21,32],[22,32],[23,32],[24,32],[25,32],[26,32],[27,32],[28,32],[29,32],[30,32],[31,32],[32,32],[33,32],[34,32],[35,32],[36,32],[37,32],[38,32],[39,32],[40,32],[41,32],[42,32],[43,32],[44,32],[45,32],[46,32],[47,32],[0,33],[1,33],[2,33],[3,33],[4,33],[5,33],[6,33],[7,33],[8,33],[9,33],[10,33],[11,33],[12,33],[13,33],[14,33],[15,33],[16,33],[17,33],[18,33],[19,33],[20,33],[21,33],[22,33],[23,33],[24,33],[25,33],[26,33],[27,33],[28,33],[29,33],[30,33],[31,33],[32,33],[33,33],[34,33],[35,33],[36,33],[37,33],[38,33],[39,33],[40,33],[41,33],[42,33],[43,33],[44,33],[45,33],[46,33],[47,33]
+];
 
 // --- Application State ---
 let gridData = Array(GRID_ROWS).fill().map(() => Array(GRID_COLS).fill(STATE_LOCKED));
 let targets = new Set(); 
 
-// Camera
-let camX = 0;
-let camY = 0;
-let scale = 0.15; 
+// Simulation Data
+let lastSimResults = null; 
+let allSimPaths = [];
+let bestCasePath = null;
+let averageCasePath = null;
+let initialGridSnapshot = null;
+let originalTargetSet = null; 
+let pathTargetSequence = []; 
+
+// Graph Data
+let graphBins = [];
+let graphMinVal = 0; let graphMaxVal = 0; let graphMaxFreq = 0;
+let graphScaleX = 1.0; let graphOffsetX = 0;
+let isGraphDragging = false; let lastGraphMouseX = 0;
+
+// Visualizers
+let viewingGrid = null;
+let viewingPath = null; 
+
+// ANIMATION STATE (Time Based)
+let animFrameId;
+let animProgress = 0; 
+let animSubProgress = 0; 
+let animTrail = []; 
+let lastFrameTime = 0;
+let pauseTimeRemaining = 0;
+
+// Animation Settings
+const TRAIL_LENGTH = 20; 
+const MOVE_SPEED = 8; 
+const PAUSE_DURATION_MS = 500; 
+
+// Main Camera
+let camX = 0; let camY = 0; let scale = 0.15; 
+// Path Camera
+let pCamX = 0; let pCamY = 0; let pScale = 0.15; 
 
 // Interaction
 let isDragging = false;
@@ -285,7 +388,18 @@ const container = document.getElementById('canvas-container');
 const simResultsBox = document.getElementById('sim-results');
 const fileInput = document.getElementById('file-input');
 const simCountInput = document.getElementById('sim-count');
-const helpModal = document.getElementById('help-modal');
+const btnGraph = document.getElementById('btn-graph');
+const btnPathBest = document.getElementById('btn-path-best');
+const btnPathAvg = document.getElementById('btn-path-avg');
+const unlockedList = document.getElementById('unlocked-list');
+const unlockedCountDisplay = document.getElementById('unlocked-count');
+
+const pathCanvas = document.getElementById('pathCanvas');
+const pathCtx = pathCanvas.getContext('2d', { alpha: false });
+const pathContainer = document.getElementById('pathCanvasContainer');
+
+const graphCanvas = document.getElementById('graphCanvas');
+const graphCtx = graphCanvas.getContext('2d');
 
 // --- Initialization ---
 function init() {
@@ -299,26 +413,82 @@ function init() {
         draw();
     };
     mapImage.onerror = () => {
-        alert("Error loading map image! Ensure '" + MAP_FILENAME + "' is in the same folder as this HTML file.");
+        alert("Error loading map image! Ensure '" + MAP_FILENAME + "' is in the same folder.");
     };
 
+    applyVoidTiles();
     setupEventListeners();
     requestAnimationFrame(drawLoop);
+    updateUnlockedUI();
+}
+
+function applyVoidTiles() {
+    INVALID_TILES.forEach(([c, r]) => {
+        if(r >= 0 && r < GRID_ROWS && c >= 0 && c < GRID_COLS) {
+            gridData[r][c] = STATE_VOID;
+        }
+    });
 }
 
 function resizeCanvas() {
     canvas.width = container.clientWidth;
     canvas.height = container.clientHeight;
+    
+    // Resize Graph Canvas
+    if(graphCanvas.parentElement) {
+        graphCanvas.width = graphCanvas.parentElement.clientWidth - 50; 
+        graphCanvas.height = 400;
+    }
+    
+    // Resize Path Canvas
+    pathCanvas.width = pathContainer.clientWidth;
+    pathCanvas.height = pathContainer.clientHeight;
+    
     draw();
 }
 
+// Global helper for closing modals
+window.closeModal = function(id) { 
+    document.getElementById(id).style.display = 'none';
+    if(id === 'path-modal') {
+        // Reset animation state but do not kill main loop
+        animProgress = 0;
+        animSubProgress = 0;
+        animTrail = [];
+    }
+}
+
 function setupEventListeners() {
+    // Main Canvas
     canvas.addEventListener('mousedown', onMouseDown);
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
     canvas.addEventListener('wheel', onWheel, { passive: false });
     canvas.addEventListener('contextmenu', e => e.preventDefault());
 
+    // Path Canvas
+    pathCanvas.addEventListener('mousedown', onPathMouseDown);
+    pathCanvas.addEventListener('mousemove', onPathMouseMove);
+    pathCanvas.addEventListener('mouseup', onPathMouseUp);
+    pathCanvas.addEventListener('wheel', onPathWheel, { passive: false });
+
+    // Graph Canvas
+    graphCanvas.addEventListener('mousedown', onGraphMouseDown);
+    window.addEventListener('mousemove', onGraphMouseMove);
+    window.addEventListener('mouseup', onGraphMouseUp);
+    graphCanvas.addEventListener('wheel', onGraphWheel, { passive: false });
+
+    // Global Key Listener for ESC
+    window.addEventListener('keydown', (e) => {
+        if (e.key === "Escape") {
+            ['help-modal', 'graph-modal', 'path-modal'].forEach(id => {
+                const modal = document.getElementById(id);
+                if (modal && modal.style.display === 'flex') window.closeModal(id);
+            });
+        }
+    });
+
+    // Buttons
     document.getElementById('btn-save').addEventListener('click', saveGrid);
     document.getElementById('btn-load').addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', loadGrid);
@@ -328,25 +498,35 @@ function setupEventListeners() {
     document.getElementById('btn-sim-any').addEventListener('click', () => runSimulation('any'));
     document.getElementById('btn-sim-all').addEventListener('click', () => runSimulation('all'));
     
-    // Help Modal
-    document.getElementById('btn-help').addEventListener('click', () => {
-        helpModal.style.display = 'flex';
-    });
+    document.getElementById('btn-help').addEventListener('click', () => document.getElementById('help-modal').style.display = 'flex');
+    btnGraph.addEventListener('click', showGraph);
+    btnPathBest.addEventListener('click', () => showPathModal('best'));
+    btnPathAvg.addEventListener('click', () => showPathModal('avg'));
+}
+
+// --- Main Render ---
+function drawLoop(timestamp) {
+    try {
+        draw();
+        if(document.getElementById('path-modal').style.display === 'flex') {
+            if (!lastFrameTime) lastFrameTime = timestamp;
+            const deltaTime = timestamp - lastFrameTime;
+            lastFrameTime = timestamp;
+            
+            updatePathAnimation(deltaTime);
+            drawPathMap();
+        } else {
+            lastFrameTime = 0;
+        }
+        
+        if(document.getElementById('graph-modal').style.display === 'flex') {
+            drawGraph();
+        }
+    } catch(e) {
+        console.error("Render loop error:", e);
+    }
     
-    // Close modal on outside click
-    helpModal.addEventListener('click', (e) => {
-        if (e.target === helpModal) closeHelp();
-    });
-}
-
-function closeHelp() {
-    helpModal.style.display = 'none';
-}
-
-// --- Rendering Loop ---
-function drawLoop() {
-    draw();
-    requestAnimationFrame(drawLoop);
+    animFrameId = requestAnimationFrame(drawLoop);
 }
 
 function draw() {
@@ -354,38 +534,34 @@ function draw() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     if (!mapLoaded) {
-        ctx.fillStyle = "white";
-        ctx.font = "20px sans-serif";
-        ctx.fillText("Loading Map...", 50, 50);
+        ctx.fillStyle = "white"; ctx.font = "20px sans-serif"; ctx.fillText("Loading Map...", 50, 50);
         return;
     }
 
     ctx.save();
     ctx.translate(camX, camY);
     ctx.scale(scale, scale);
-
     ctx.drawImage(mapImage, 0, 0);
 
-    // Visible Culling Logic
-    const worldLeft = -camX / scale;
-    const worldTop = -camY / scale;
-    const worldRight = (-camX + canvas.width) / scale;
-    const worldBottom = (-camY + canvas.height) / scale;
+    drawGridOverlay(ctx, scale, gridData, -camX/scale, -camY/scale, canvas.width/scale, canvas.height/scale);
+    ctx.restore();
+}
 
-    const startCol = Math.max(0, Math.floor(worldLeft / CHUNK_SIZE));
-    const endCol = Math.min(GRID_COLS, Math.ceil(worldRight / CHUNK_SIZE));
-    const startRow = Math.max(0, Math.floor(worldTop / CHUNK_SIZE));
-    const endRow = Math.min(GRID_ROWS, Math.ceil(worldBottom / CHUNK_SIZE));
+function drawGridOverlay(context, currentScale, data, viewLeft, viewTop, viewW, viewH) {
+    const startCol = Math.max(0, Math.floor(viewLeft / CHUNK_SIZE));
+    const endCol = Math.min(GRID_COLS, Math.ceil((viewLeft + viewW) / CHUNK_SIZE));
+    const startRow = Math.max(0, Math.floor(viewTop / CHUNK_SIZE));
+    const endRow = Math.min(GRID_ROWS, Math.ceil((viewTop + viewH) / CHUNK_SIZE));
 
-    ctx.lineWidth = 1 / scale; 
-    const fontSize = Math.max(10, Math.floor(24 / scale));
-    ctx.font = `${fontSize}px sans-serif`;
-    ctx.textAlign = "right";
-    ctx.textBaseline = "bottom";
+    context.lineWidth = 1 / currentScale; 
+    const fontSize = Math.max(10, Math.floor(24 / currentScale));
+    context.font = `${fontSize}px sans-serif`;
+    context.textAlign = "right";
+    context.textBaseline = "bottom";
 
     for (let r = startRow; r < endRow; r++) {
         for (let c = startCol; c < endCol; c++) {
-            const state = gridData[r][c];
+            const state = data[r][c];
             const x = c * CHUNK_SIZE;
             const y = r * CHUNK_SIZE;
 
@@ -396,29 +572,275 @@ function draw() {
                 case STATE_TARGET_LOCKED: fillStyle = COL_TARGET_LOCKED; break;
                 case STATE_TARGET_ROLLABLE: fillStyle = COL_TARGET_ROLLABLE; break;
                 case STATE_TRANSPORT: fillStyle = COL_TRANSPORT; break;
+                case STATE_VOID: fillStyle = COL_VOID; break;
             }
 
             if (fillStyle) {
-                ctx.fillStyle = fillStyle;
-                ctx.fillRect(x, y, CHUNK_SIZE + 0.5, CHUNK_SIZE + 0.5);
+                context.fillStyle = fillStyle;
+                context.fillRect(x, y, CHUNK_SIZE + 0.5, CHUNK_SIZE + 0.5);
             }
 
-            if (scale > 0.15) {
-                 ctx.strokeStyle = "rgba(50, 50, 50, 0.5)";
-                 ctx.strokeRect(x, y, CHUNK_SIZE, CHUNK_SIZE);
+            if (currentScale > 0.15) {
+                 context.strokeStyle = "rgba(50, 50, 50, 0.5)";
+                 context.strokeRect(x, y, CHUNK_SIZE, CHUNK_SIZE);
             }
 
-            if (scale > 0.8 && state !== STATE_LOCKED) {
-                ctx.fillStyle = "white";
-                // Show X,Y (Col,Row)
-                ctx.fillText(`${c},${r}`, x + CHUNK_SIZE - 5, y + CHUNK_SIZE - 5);
+            if (currentScale > 0.8 && state !== STATE_LOCKED && state !== STATE_VOID) {
+                context.fillStyle = "white";
+                context.fillText(`${c},${r}`, x + CHUNK_SIZE - 5, y + CHUNK_SIZE - 5);
             }
         }
     }
-    ctx.restore();
 }
 
-// --- Camera & Input ---
+// --- Path Animation & Rendering ---
+
+function updatePathAnimation(deltaTime) {
+    if (!viewingPath || viewingPath.length < 2) return;
+
+    // 1. Handle Active Pause
+    if (pauseTimeRemaining > 0) {
+        pauseTimeRemaining -= deltaTime;
+        
+        // If pause finished, and we were at the end, reset loop
+        if (pauseTimeRemaining <= 0 && animProgress >= viewingPath.length - 1) {
+             animProgress = 0;
+             animTrail = [];
+             // Loop reset: Always pause briefly at start for visual clarity
+             pauseTimeRemaining = PAUSE_DURATION_MS;
+        }
+        return;
+    }
+
+    // 2. Check if we are at the end (and not paused)
+    if (animProgress >= viewingPath.length - 1) {
+        animProgress = 0;
+        animTrail = [];
+        return;
+    }
+
+    // 3. Move Logic
+    const step = (MOVE_SPEED * (deltaTime / 1000));
+    animSubProgress += step;
+    
+    if (animSubProgress >= 1.0) {
+        animSubProgress = 0;
+        animProgress++;
+
+        // Pause on EVERY hit
+        if (animProgress < viewingPath.length) {
+             pauseTimeRemaining = PAUSE_DURATION_MS;
+        }
+
+        // End of path check
+        if (animProgress >= viewingPath.length - 1) {
+             pauseTimeRemaining = PAUSE_DURATION_MS;
+        }
+    }
+
+    if (animProgress < viewingPath.length - 1) {
+        const p1 = viewingPath[animProgress];
+        const p2 = viewingPath[animProgress + 1];
+        
+        const curR = p1.r + (p2.r - p1.r) * animSubProgress;
+        const curC = p1.c + (p2.c - p1.c) * animSubProgress;
+        
+        animTrail.push({r: curR, c: curC});
+        if (animTrail.length > TRAIL_LENGTH) animTrail.shift();
+    }
+}
+
+function drawPathMap() {
+    pathCanvas.width = pathContainer.clientWidth;
+    pathCanvas.height = pathContainer.clientHeight;
+    
+    pathCtx.fillStyle = "#202020";
+    pathCtx.fillRect(0, 0, pathCanvas.width, pathCanvas.height);
+
+    if(!viewingGrid) return;
+
+    pathCtx.save();
+    pathCtx.translate(pCamX, pCamY);
+    pathCtx.scale(pScale, pScale);
+    pathCtx.drawImage(mapImage, 0, 0);
+
+    const viewLeft = -pCamX / pScale;
+    const viewTop = -pCamY / pScale;
+    drawGridOverlay(pathCtx, pScale, viewingGrid, viewLeft, viewTop, pathCanvas.width/pScale, pathCanvas.height/pScale);
+
+    // Static Line
+    if (viewingPath && viewingPath.length > 0) {
+        pathCtx.strokeStyle = "rgba(255, 215, 0, 0.2)"; 
+        pathCtx.lineWidth = 2 / pScale;
+        pathCtx.beginPath();
+        const half = CHUNK_SIZE / 2;
+        const start = viewingPath[0];
+        pathCtx.moveTo(start.c * CHUNK_SIZE + half, start.r * CHUNK_SIZE + half);
+        for (let i = 1; i < viewingPath.length; i++) {
+            const p = viewingPath[i];
+            pathCtx.lineTo(p.c * CHUNK_SIZE + half, p.r * CHUNK_SIZE + half);
+        }
+        pathCtx.stroke();
+    }
+
+    // Trail
+    if (animTrail.length > 0) {
+        const half = CHUNK_SIZE / 2;
+        pathCtx.lineCap = "round";
+        pathCtx.lineJoin = "round";
+
+        for (let i = 0; i < animTrail.length - 1; i++) {
+            const pt1 = animTrail[i];
+            const pt2 = animTrail[i+1];
+            const alpha = (i / animTrail.length);
+            
+            pathCtx.beginPath();
+            pathCtx.lineWidth = (3 * alpha + 1) / pScale; 
+            pathCtx.strokeStyle = `rgba(255, 215, 0, ${alpha})`; 
+            
+            pathCtx.moveTo(pt1.c * CHUNK_SIZE + half, pt1.r * CHUNK_SIZE + half);
+            pathCtx.lineTo(pt2.c * CHUNK_SIZE + half, pt2.r * CHUNK_SIZE + half);
+            pathCtx.stroke();
+        }
+    }
+
+    // Glow on Impact
+    if (pauseTimeRemaining > 0 && viewingPath && animProgress < viewingPath.length) {
+        const p = viewingPath[animProgress];
+        const gx = p.c * CHUNK_SIZE;
+        const gy = p.r * CHUNK_SIZE;
+        const glowAlpha = pauseTimeRemaining / PAUSE_DURATION_MS;
+        
+        pathCtx.save();
+        
+        // --- RESTORED GLOW LOGIC ---
+        if (originalTargetSet && originalTargetSet.has(`${p.r},${p.c}`)) {
+            // TARGET GLOW (Strong Cyan)
+            pathCtx.shadowColor = "#00FFFF";
+            pathCtx.shadowBlur = 40 * glowAlpha;
+            pathCtx.fillStyle = `rgba(0, 255, 255, ${glowAlpha * 0.3})`;
+            pathCtx.fillRect(gx, gy, CHUNK_SIZE, CHUNK_SIZE);
+            pathCtx.strokeStyle = `rgba(0, 255, 255, ${glowAlpha})`;
+            pathCtx.lineWidth = 4 / pScale;
+            pathCtx.strokeRect(gx, gy, CHUNK_SIZE, CHUNK_SIZE);
+        } else {
+            // STANDARD GLOW (Faint Gold)
+            pathCtx.shadowColor = "#FFD700"; 
+            pathCtx.shadowBlur = 20 * glowAlpha; 
+            pathCtx.fillStyle = `rgba(255, 215, 0, ${glowAlpha * 0.15})`; 
+            pathCtx.fillRect(gx, gy, CHUNK_SIZE, CHUNK_SIZE);
+            pathCtx.strokeStyle = `rgba(255, 215, 0, ${glowAlpha * 0.5})`;
+            pathCtx.lineWidth = 2 / pScale;
+            pathCtx.strokeRect(gx, gy, CHUNK_SIZE, CHUNK_SIZE);
+        }
+        
+        pathCtx.restore();
+    }
+
+    // Draw Start/End Markers & Order Labels
+    if (viewingPath && viewingPath.length > 0) {
+        pathCtx.font = `bold ${Math.max(12, 36/pScale)}px sans-serif`;
+        pathCtx.textAlign = "center";
+        pathCtx.textBaseline = "middle";
+        const half = CHUNK_SIZE/2;
+        
+        // Draw Target Sequence Numbers
+        if (pathTargetSequence && pathTargetSequence.length > 0) {
+            pathTargetSequence.forEach(t => {
+                const tx = t.c * CHUNK_SIZE + half;
+                const ty = t.r * CHUNK_SIZE + half;
+                
+                // Background circle
+                pathCtx.beginPath();
+                pathCtx.arc(tx, ty, 24/pScale, 0, 2 * Math.PI);
+                pathCtx.fillStyle = "#2196f3"; // Blue badge
+                pathCtx.fill();
+                pathCtx.strokeStyle = "white";
+                pathCtx.lineWidth = 2/pScale;
+                pathCtx.stroke();
+                
+                // Number
+                pathCtx.fillStyle = "white";
+                pathCtx.fillText(t.num, tx, ty);
+            });
+        }
+
+        const start = viewingPath[0];
+        // Only draw 'S' if it's not also a target
+        if (originalTargetSet && !originalTargetSet.has(`${start.r},${start.c}`)) {
+            pathCtx.fillStyle = "#00FF00";
+            pathCtx.fillText("S", start.c * CHUNK_SIZE + half, start.r * CHUNK_SIZE + half);
+        }
+    }
+
+    pathCtx.restore();
+}
+
+function showPathModal(type) {
+    if (!initialGridSnapshot) return;
+    
+    if (type === 'best') viewingPath = bestCasePath;
+    else if (type === 'avg') viewingPath = averageCasePath;
+    
+    if (!viewingPath) { alert("Path data not found."); return; }
+
+    viewingGrid = JSON.parse(JSON.stringify(initialGridSnapshot)); 
+    const tempVisited = new Set();
+    for(let r=0; r<GRID_ROWS; r++) {
+        for(let c=0; c<GRID_COLS; c++) {
+            if (viewingGrid[r][c] === STATE_UNLOCKED) tempVisited.add(`${r},${c}`);
+        }
+    }
+    viewingPath.forEach(p => {
+        viewingGrid[p.r][p.c] = STATE_UNLOCKED;
+        tempVisited.add(`${p.r},${p.c}`);
+    });
+    for(let r=0; r<GRID_ROWS; r++) {
+        for(let c=0; c<GRID_COLS; c++) {
+            if (tempVisited.has(`${r},${c}`)) continue; 
+            let isNeighbor = false;
+            const neighbors = [[r-1,c], [r+1,c], [r,c-1], [r,c+1]];
+            for (let [nr, nc] of neighbors) {
+                if(nr>=0 && nr<GRID_ROWS && nc>=0 && nc<GRID_COLS && viewingGrid[nr][nc] === STATE_UNLOCKED) {
+                    isNeighbor = true; break;
+                }
+            }
+            if (isNeighbor) {
+                if (viewingGrid[r][c] === STATE_LOCKED) viewingGrid[r][c] = STATE_ROLLABLE;
+                else if (viewingGrid[r][c] === STATE_TARGET_LOCKED) viewingGrid[r][c] = STATE_TARGET_ROLLABLE;
+            }
+        }
+    }
+
+    // Calculate Target Order
+    pathTargetSequence = [];
+    let tCount = 1;
+    viewingPath.forEach(p => {
+        if (originalTargetSet.has(`${p.r},${p.c}`)) {
+            pathTargetSequence.push({r: p.r, c: p.c, num: tCount++});
+        }
+    });
+
+    animFrameId = null;
+    animProgress = 0;
+    animSubProgress = 0;
+    animTrail = [];
+    // Always pause on start
+    pauseTimeRemaining = PAUSE_DURATION_MS;
+    lastFrameTime = 0; 
+
+    document.getElementById('path-modal-title').textContent = (type === 'best') ? "Best Path Replay" : "Average Path Replay";
+    document.getElementById('path-modal').style.display = 'flex';
+    
+    const start = viewingPath[0];
+    const cx = (start.c * CHUNK_SIZE) + CHUNK_SIZE/2;
+    const cy = (start.r * CHUNK_SIZE) + CHUNK_SIZE/2;
+    pScale = 0.2;
+    pCamX = (pathContainer.clientWidth / 2) - (cx * pScale);
+    pCamY = (pathContainer.clientHeight / 2) - (cy * pScale);
+}
+
+// --- Main Canvas Input ---
 function screenToGrid(screenX, screenY) {
     const worldX = (screenX - camX) / scale;
     const worldY = (screenY - camY) / scale;
@@ -429,21 +851,16 @@ function screenToGrid(screenX, screenY) {
 
 function onMouseDown(e) {
     isDragging = true;
-    lastMouseX = e.clientX;
-    lastMouseY = e.clientY;
-    dragStartX = e.clientX;
-    dragStartY = e.clientY;
+    lastMouseX = e.clientX; lastMouseY = e.clientY;
+    dragStartX = e.clientX; dragStartY = e.clientY;
     container.classList.add('dragging');
 }
 
 function onMouseMove(e) {
     if (!isDragging) return;
-    const dx = e.clientX - lastMouseX;
-    const dy = e.clientY - lastMouseY;
-    camX += dx;
-    camY += dy;
-    lastMouseX = e.clientX;
-    lastMouseY = e.clientY;
+    const dx = e.clientX - lastMouseX; const dy = e.clientY - lastMouseY;
+    camX += dx; camY += dy;
+    lastMouseX = e.clientX; lastMouseY = e.clientY;
 }
 
 function onMouseUp(e) {
@@ -456,31 +873,27 @@ function onMouseUp(e) {
 
 function handleMouseClick(e) {
     const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
+    const mx = e.clientX - rect.left; const my = e.clientY - rect.top;
     const { row, col, isValid } = screenToGrid(mx, my);
-
     if (!isValid) return;
 
     if (e.button === 0 && !e.shiftKey) {
         if (gridData[row][col] === STATE_UNLOCKED) {
             gridData[row][col] = STATE_LOCKED;
             checkNeighborsIntegrity(row, col);
-        } else {
+        } else if (gridData[row][col] !== STATE_VOID) {
             gridData[row][col] = STATE_UNLOCKED;
             updateNeighbors(row, col);
         }
         if (targets.has(`${row},${col}`)) targets.delete(`${row},${col}`);
-
     } else if (e.button === 2) {
         const s = gridData[row][col];
         if (s === STATE_LOCKED) gridData[row][col] = STATE_ROLLABLE;
         else if (s === STATE_ROLLABLE) gridData[row][col] = STATE_LOCKED;
-
     } else if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
+        if(gridData[row][col] === STATE_VOID) return;
         const s = gridData[row][col];
         const targetKey = `${row},${col}`;
-
         if (s === STATE_TRANSPORT) {
             gridData[row][col] = STATE_LOCKED;
             targets.delete(targetKey);
@@ -492,22 +905,81 @@ function handleMouseClick(e) {
             else gridData[row][col] = STATE_TARGET_LOCKED;
         }
     }
+    updateUnlockedUI();
 }
 
 function onWheel(e) {
     e.preventDefault();
     const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
+    const mx = e.clientX - rect.left; const my = e.clientY - rect.top;
     const worldXBefore = (mx - camX) / scale;
     const worldYBefore = (my - camY) / scale;
-
-    if (e.deltaY < 0) scale *= ZOOM_SPEED;
-    else scale /= ZOOM_SPEED;
+    if (e.deltaY < 0) scale *= ZOOM_SPEED; else scale /= ZOOM_SPEED;
     scale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, scale));
+    camX = mx - worldXBefore * scale; camY = my - worldYBefore * scale;
+}
 
-    camX = mx - worldXBefore * scale;
-    camY = my - worldYBefore * scale;
+// --- Path Canvas Input ---
+let isPathDragging = false;
+let lastPathX, lastPathY;
+
+function onPathMouseDown(e) {
+    isPathDragging = true;
+    lastPathX = e.clientX; lastPathY = e.clientY;
+    pathContainer.classList.add('dragging');
+}
+function onPathMouseMove(e) {
+    if (!isPathDragging) return;
+    const dx = e.clientX - lastPathX; const dy = e.clientY - lastPathY;
+    pCamX += dx; pCamY += dy;
+    lastPathX = e.clientX; lastPathY = e.clientY;
+}
+function onPathMouseUp(e) {
+    isPathDragging = false;
+    pathContainer.classList.remove('dragging');
+}
+function onPathWheel(e) {
+    e.preventDefault();
+    const rect = pathCanvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left; const my = e.clientY - rect.top;
+    const worldXBefore = (mx - pCamX) / pScale;
+    const worldYBefore = (my - pCamY) / pScale;
+    if (e.deltaY < 0) pScale *= ZOOM_SPEED; else pScale /= ZOOM_SPEED;
+    pScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, pScale));
+    pCamX = mx - worldXBefore * pScale; pCamY = my - worldYBefore * pScale;
+}
+
+// --- Graph Input ---
+function onGraphMouseDown(e) { isGraphDragging = true; lastGraphMouseX = e.clientX; }
+function onGraphMouseMove(e) {
+    if (!isGraphDragging) return;
+    const dx = e.clientX - lastGraphMouseX;
+    graphOffsetX += dx;
+    const drawW = graphCanvas.width - 80;
+    const minOffset = drawW - (drawW * graphScaleX);
+    if (graphOffsetX > 0) graphOffsetX = 0;
+    if (graphOffsetX < minOffset) graphOffsetX = minOffset;
+    if (graphScaleX <= 1.0) graphOffsetX = 0;
+    lastGraphMouseX = e.clientX;
+    drawGraph();
+}
+function onGraphMouseUp(e) { isGraphDragging = false; }
+function onGraphWheel(e) {
+    e.preventDefault();
+    const zoomSpeed = 1.1;
+    const rect = graphCanvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left - 40; 
+    const drawW = graphCanvas.width - 80;
+    const worldX = (mx - graphOffsetX) / graphScaleX;
+    if (e.deltaY < 0) graphScaleX *= zoomSpeed; else graphScaleX /= zoomSpeed;
+    if (graphScaleX < 1.0) graphScaleX = 1.0;
+    if (graphScaleX > 50.0) graphScaleX = 50.0;
+    graphOffsetX = mx - (worldX * graphScaleX);
+    const minOffset = drawW - (drawW * graphScaleX);
+    if (graphOffsetX > 0) graphOffsetX = 0;
+    if (graphOffsetX < minOffset) graphOffsetX = minOffset;
+    if (graphScaleX <= 1.0) graphOffsetX = 0;
+    drawGraph();
 }
 
 // --- Logic ---
@@ -557,12 +1029,10 @@ function recenterView() {
     }
     let targetR = GRID_ROWS / 2, targetC = GRID_COLS / 2;
     if (count > 0) { targetR = rSum/count; targetC = cSum/count; }
-
     const worldCenterX = (targetC * CHUNK_SIZE) + (CHUNK_SIZE/2);
     const worldCenterY = (targetR * CHUNK_SIZE) + (CHUNK_SIZE/2);
     const screenCenterX = canvas.width / 2;
     const screenCenterY = canvas.height / 2;
-
     camX = screenCenterX - (worldCenterX * scale);
     camY = screenCenterY - (worldCenterY * scale);
 }
@@ -577,25 +1047,36 @@ function rollFate() {
             }
         }
     }
-
-    if(rollable.length === 0) {
-        alert("No Rollable tiles found!");
-        return;
-    }
-
+    if(rollable.length === 0) { alert("No Rollable tiles found!"); return; }
     const winner = rollable[Math.floor(Math.random() * rollable.length)];
     gridData[winner.r][winner.c] = STATE_UNLOCKED;
     updateNeighbors(winner.r, winner.c);
-    
     const targetKey = `${winner.r},${winner.c}`;
     if(targets.has(targetKey)) {
         targets.delete(targetKey);
         alert("Victory! Target Reached!");
     }
     recenterView();
+    updateUnlockedUI();
 }
 
-// --- Saving / Loading ---
+function updateUnlockedUI() {
+    unlockedList.innerHTML = '';
+    let count = 0;
+    for(let r=0; r<GRID_ROWS; r++) {
+        for(let c=0; c<GRID_COLS; c++) {
+            if(gridData[r][c] === STATE_UNLOCKED) {
+                count++;
+                const li = document.createElement('li');
+                li.textContent = `(${c}, ${r})`;
+                unlockedList.appendChild(li);
+            }
+        }
+    }
+    unlockedCountDisplay.textContent = `(${count})`;
+}
+
+// --- IO ---
 function saveGrid() {
     const saveData = {
         rows: GRID_ROWS, cols: GRID_COLS,
@@ -605,9 +1086,7 @@ function saveGrid() {
     const blob = new Blob([JSON.stringify(saveData)], {type: "application/json"});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = "osrs_grid_save.json";
-    a.click();
+    a.href = url; a.download = "osrs_grid_save.json"; a.click();
     URL.revokeObjectURL(url);
 }
 
@@ -621,7 +1100,10 @@ function loadGrid(e) {
             if (loaded.rows !== GRID_ROWS || loaded.cols !== GRID_COLS) throw new Error("Grid dimensions mismatch.");
             gridData = loaded.data;
             targets = new Set(loaded.targets);
+            // Re-apply void tiles to ensure save data doesn't override them
+            applyVoidTiles();
             recenterView();
+            updateUnlockedUI();
             alert("Grid loaded successfully.");
         } catch (err) {
             alert("Error loading save file: " + err.message);
@@ -632,13 +1114,18 @@ function loadGrid(e) {
 }
 
 function clearGrid() {
-    if (confirm("Are you sure you want to reset the grid?")) {
+    if (confirm("Reset grid?")) {
         gridData = Array(GRID_ROWS).fill().map(() => Array(GRID_COLS).fill(STATE_LOCKED));
+        applyVoidTiles();
         targets.clear();
+        btnGraph.style.display = 'none';
+        btnPathBest.style.display = 'none';
+        btnPathAvg.style.display = 'none';
+        updateUnlockedUI();
     }
 }
 
-// --- Simulations ---
+// --- Simulation ---
 function runSimulation(mode) {
     if (targets.size === 0) { alert("Set at least one target first."); return; }
     
@@ -646,26 +1133,40 @@ function runSimulation(mode) {
     if (isNaN(simRuns) || simRuns < 1) simRuns = 1000;
 
     simResultsBox.textContent = `Running ${mode === 'any' ? 'Race' : 'Clear'} simulation (${simRuns} runs)...`;
+    btnGraph.style.display = 'none';
+    btnPathBest.style.display = 'none';
+    btnPathAvg.style.display = 'none';
     
     setTimeout(() => {
         let allRollResults = []; 
         let targetHits = {}; 
+        
+        let minRollsGlobal = Infinity;
+        bestCasePath = null;
+        averageCasePath = null;
+        allSimPaths = [];
+        
+        initialGridSnapshot = JSON.parse(JSON.stringify(gridData));
+        originalTargetSet = new Set(targets); 
 
         const startState = JSON.parse(JSON.stringify(gridData)); 
         const startTargets = new Set(targets);
 
         for (let i = 0; i < simRuns; i++) {
-            let tempGrid = JSON.parse(JSON.stringify(startState));
+            let tempGrid = JSON.parse(JSON.stringify(startState)); 
             let tempTargets = new Set(startTargets);
             let rollableList = [];
             let visited = new Set();
+            let currentPath = []; 
 
+            // FIX: Pre-populate visited
             for(let r=0; r<GRID_ROWS; r++) {
                 for(let c=0; c<GRID_COLS; c++) {
                     const s = tempGrid[r][c];
                     if(s === STATE_UNLOCKED) visited.add(`${r},${c}`);
                     if(s === STATE_ROLLABLE || s === STATE_TARGET_ROLLABLE || s === STATE_TRANSPORT) {
                         rollableList.push({r,c});
+                        visited.add(`${r},${c}`); 
                     }
                 }
             }
@@ -677,6 +1178,8 @@ function runSimulation(mode) {
                 rolls++;
                 const idx = Math.floor(Math.random() * rollableList.length);
                 const winner = rollableList[idx];
+                
+                currentPath.push({r: winner.r, c: winner.c});
                 
                 rollableList[idx] = rollableList[rollableList.length - 1];
                 rollableList.pop();
@@ -692,23 +1195,47 @@ function runSimulation(mode) {
                 }
                 
                 tempGrid[winner.r][winner.c] = STATE_UNLOCKED;
-                visited.add(targetKey);
-
+                
                 const neighbors = [[winner.r-1,winner.c], [winner.r+1,winner.c], [winner.r,winner.c-1], [winner.r,winner.c+1]];
                 for(let [nr, nc] of neighbors) {
                     if(nr>=0 && nr<GRID_ROWS && nc>=0 && nc<GRID_COLS && !visited.has(`${nr},${nc}`)) {
-                         visited.add(`${nr},${nc}`);
-                         rollableList.push({r:nr, c:nc});
+                        // EXCLUDE VOID TILES FROM SIM
+                         if(tempGrid[nr][nc] !== STATE_VOID) {
+                             visited.add(`${nr},${nc}`);
+                             rollableList.push({r:nr, c:nc});
+                         }
                     }
                 }
             }
 
             if (!runFinished) { alert("Simulation failed: Targets unreachable."); return; }
+            
             allRollResults.push(rolls);
+            allSimPaths.push(currentPath);
+            
+            if (rolls < minRollsGlobal) {
+                minRollsGlobal = rolls;
+                bestCasePath = currentPath;
+            }
         }
 
+        lastSimResults = allRollResults; 
+        
         const totalRolls = allRollResults.reduce((a,b) => a+b, 0);
-        const avg = (totalRolls / simRuns).toFixed(1);
+        const avg = (totalRolls / simRuns);
+        
+        let closestDiff = Infinity;
+        let closestIndex = 0;
+        allRollResults.forEach((val, idx) => {
+            const diff = Math.abs(val - avg);
+            if (diff < closestDiff) {
+                closestDiff = diff;
+                closestIndex = idx;
+            }
+        });
+        averageCasePath = allSimPaths[closestIndex];
+
+        const avgDisplay = avg.toFixed(1);
         const minRolls = Math.min(...allRollResults);
         const maxRolls = Math.max(...allRollResults);
 
@@ -719,7 +1246,7 @@ function runSimulation(mode) {
 
         let output = `=== Results (${mode === 'any' ? 'Race' : 'Clear'}) ===\n`;
         output += `Runs: ${simRuns}\n`;
-        output += `Average Rolls: ${avg}\n`;
+        output += `Average Rolls: ${avgDisplay}\n`;
         output += `Best Case: ${minRolls} (${bestCasePercent}%)\n`;
         output += `Worst Case: ${maxRolls} (${worstCasePercent}%)\n`;
 
@@ -731,8 +1258,83 @@ function runSimulation(mode) {
             });
         }
         simResultsBox.textContent = output;
+        btnGraph.style.display = 'block';
+        btnPathBest.style.display = 'block';
+        btnPathAvg.style.display = 'block';
 
     }, 50); 
+}
+
+function showGraph() {
+    if (!lastSimResults) return;
+    document.getElementById('graph-modal').style.display = 'flex';
+    const gCanvas = document.getElementById('graphCanvas');
+    const gCtx = gCanvas.getContext('2d');
+    gCanvas.width = gCanvas.clientWidth; gCanvas.height = gCanvas.clientHeight;
+    const w = gCanvas.width; const h = gCanvas.height;
+    
+    const minVal = Math.min(...lastSimResults);
+    const maxVal = Math.max(...lastSimResults);
+    const range = maxVal - minVal;
+    const binCount = Math.min(50, range + 1);
+    const binSize = (range + 1) / binCount;
+    const bins = new Array(binCount).fill(0);
+    
+    lastSimResults.forEach(val => {
+        const binIndex = Math.min(binCount-1, Math.floor((val - minVal) / binSize));
+        bins[binIndex]++;
+    });
+    
+    const maxFreq = Math.max(...bins);
+    gCtx.fillStyle = "#222"; gCtx.fillRect(0, 0, w, h);
+    const p = 40; const graphW = w - p*2; const graphH = h - p*2;
+    const barWidth = graphW / binCount;
+    gCtx.fillStyle = "#2196f3";
+    
+    bins.forEach((count, i) => {
+        const barHeight = (count / maxFreq) * graphH;
+        gCtx.fillRect(p + i * barWidth + 1, h - p - barHeight, barWidth - 1, barHeight);
+    });
+    
+    gCtx.strokeStyle = "#fff"; gCtx.beginPath();
+    gCtx.moveTo(p, p); gCtx.lineTo(p, h - p); gCtx.lineTo(w - p, h - p); gCtx.stroke();
+    gCtx.fillStyle = "#fff"; gCtx.font = "12px sans-serif"; gCtx.textAlign = "center";
+    gCtx.fillText(minVal, p, h - p + 15);
+    gCtx.fillText(Math.floor((minVal+maxVal)/2), p + graphW/2, h - p + 15);
+    gCtx.fillText(maxVal, w - p, h - p + 15);
+}
+
+// Graph Events
+function onGraphMouseDown(e) { isGraphDragging = true; lastGraphMouseX = e.clientX; }
+function onGraphMouseMove(e) {
+    if (!isGraphDragging) return;
+    const dx = e.clientX - lastGraphMouseX;
+    graphOffsetX += dx;
+    const drawW = graphCanvas.width - 80;
+    const minOffset = drawW - (drawW * graphScaleX);
+    if (graphOffsetX > 0) graphOffsetX = 0;
+    if (graphOffsetX < minOffset) graphOffsetX = minOffset;
+    if (graphScaleX <= 1.0) graphOffsetX = 0;
+    lastGraphMouseX = e.clientX;
+    drawGraph();
+}
+function onGraphMouseUp(e) { isGraphDragging = false; }
+function onGraphWheel(e) {
+    e.preventDefault();
+    const zoomSpeed = 1.1;
+    const rect = graphCanvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left - 40; 
+    const drawW = graphCanvas.width - 80;
+    const worldX = (mx - graphOffsetX) / graphScaleX;
+    if (e.deltaY < 0) graphScaleX *= zoomSpeed; else graphScaleX /= zoomSpeed;
+    if (graphScaleX < 1.0) graphScaleX = 1.0;
+    if (graphScaleX > 50.0) graphScaleX = 50.0;
+    graphOffsetX = mx - (worldX * graphScaleX);
+    const minOffset = drawW - (drawW * graphScaleX);
+    if (graphOffsetX > 0) graphOffsetX = 0;
+    if (graphOffsetX < minOffset) graphOffsetX = minOffset;
+    if (graphScaleX <= 1.0) graphOffsetX = 0;
+    drawGraph();
 }
 
 // Start application
